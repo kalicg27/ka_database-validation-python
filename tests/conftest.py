@@ -1,20 +1,20 @@
 import os
 import sys
+
+# -------------------------------------------------------------------
+# Ensure project root (the folder that contains "src/") is on sys.path
+# -------------------------------------------------------------------
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
 import psycopg2
 import pytest
 from src.db.config import DBConfig
 
 
-# -------------------------------------------------------------
-# Ensure project root is added to sys.path so "src" is importable
-# -------------------------------------------------------------
-ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
-
-
-def run_sql_file(cursor, path: str):
-    """Utility to execute an SQL file."""
+def run_sql_file(cursor, path: str) -> None:
+    """Execute all statements from an SQL file."""
     with open(path, "r", encoding="utf-8") as f:
         cursor.execute(f.read())
 
@@ -22,9 +22,12 @@ def run_sql_file(cursor, path: str):
 @pytest.fixture(scope="session", autouse=True)
 def prepare_database():
     """
-    Automatically runs before the test session.
-    Loads the schema and seed data into PostgreSQL.
-    Works locally and in GitHub Actions.
+    Session-scoped fixture that prepares the database before any tests run.
+
+    It:
+    - Connects to PostgreSQL using DBConfig.from_env()
+    - Executes sql/create_schema.sql
+    - Executes sql/seed_data.sql
     """
     config = DBConfig.from_env()
 
@@ -40,13 +43,5 @@ def prepare_database():
     try:
         cursor = conn.cursor()
 
-        base_dir = os.path.dirname(os.path.dirname(__file__))
-        schema_file = os.path.join(base_dir, "sql", "create_schema.sql")
-        seed_file = os.path.join(base_dir, "sql", "seed_data.sql")
-
-        run_sql_file(cursor, schema_file)
-        run_sql_file(cursor, seed_file)
-
-        cursor.close()
-    finally:
-        conn.close()
+        base_dir = ROOT_DIR  # project root
+        schema_file = os.path.join(b_
